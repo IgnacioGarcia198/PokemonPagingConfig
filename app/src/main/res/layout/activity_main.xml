@@ -28,7 +28,8 @@
         android:inputType="text"
         app:layout_constraintEnd_toStartOf="@+id/textView"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        android:imeOptions="actionDone"/>
 
     <TextView
         android:id="@+id/textView"
