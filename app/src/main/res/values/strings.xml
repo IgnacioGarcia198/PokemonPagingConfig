@@ -1,6 +1,7 @@
 <resources>
-    <string name="app_name">Retrofit and Room Sample</string>
-    <string name="type_photo_title_hint">Type photo title</string>
+    <string name="app_name">Pokemon Paging Config</string>
+    <string name="type_pokemon_name_hint">Type pokemon name</string>
     <string name="in_album_textview">In album:</string>
     <string name="item_image_content_desc">Preview of the photo</string>
+    <string name="not_data_yet">Not data yet</string>
 </resources>
