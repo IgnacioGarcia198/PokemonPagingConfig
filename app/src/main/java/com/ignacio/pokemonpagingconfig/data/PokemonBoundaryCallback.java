@@ -4,10 +4,17 @@ import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.paging.PagedList;
 import androidx.annotation.NonNull;
+
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.util.Log;
 
+import com.ignacio.pokemonpagingconfig.api.PokemonService;
+import com.ignacio.pokemonpagingconfig.api.RetrofitClientInstance;
 import com.ignacio.pokemonpagingconfig.model.RetroPokemon;
+import com.ignacio.pokemonpagingconfig.utils.Globals;
 
+import java.util.Calendar;
 import java.util.List;
 
 /**
@@ -29,15 +36,25 @@ public class PokemonBoundaryCallback extends PagedList.BoundaryCallback<RetroPok
     // Avoid triggering multiple requests in the same time
     private boolean isRequestInProgress = false;
     // LiveData of network errors.
-    private MutableLiveData<String> networkErrors = new MutableLiveData<>();
+    private MutableLiveData<ResponseState> networkErrors = new MutableLiveData<>();
     private RetroPokemonRepository repository;
+
+    private static final int DB_EMPTY = 0;
+    private static final int OUTDATED = 1;
+    private static final int UP_TO_DATE = 2;
+    private static int FRESH_TIMEOUT_IN_MINUTES = 2;//43200
+    //private int dbupdated;
 
     PokemonBoundaryCallback(String name, RetroPokemonRepository repository) {
         this.name = name;
         this.repository = repository;
+        if(isdbUpToDate() == OUTDATED) {
+            Log.d(LOG_TAG,"db is outdated, retrieve data from network");
+            requestAndSaveData(name,false);
+        }
     }
 
-    LiveData<String> getNetworkErrors() {
+    LiveData<ResponseState> getNetworkErrors() {
         return networkErrors;
     }
 
@@ -47,7 +64,7 @@ public class PokemonBoundaryCallback extends PagedList.BoundaryCallback<RetroPok
      *
      *
      */
-    private void requestAndSaveData(String name) {
+    private void requestAndSaveData(String name,boolean dbEmpty) {
         //Exiting if the request is in progress
         if (isRequestInProgress) return;
 
@@ -55,7 +72,7 @@ public class PokemonBoundaryCallback extends PagedList.BoundaryCallback<RetroPok
         isRequestInProgress = true;
 
         //Calling the client API to retrieve the Repos for the given search query
-        repository.fetchPokemonsFromApi(this, name, lastOffset, NETWORK_PAGE_SIZE);
+        repository.fetchPokemonsFromApi(this, name, lastOffset, NETWORK_PAGE_SIZE,dbEmpty);
 
     }
 
@@ -65,7 +82,7 @@ public class PokemonBoundaryCallback extends PagedList.BoundaryCallback<RetroPok
     @Override
     public void onZeroItemsLoaded() {
         Log.d(LOG_TAG, "onZeroItemsLoaded: Started");
-        requestAndSaveData(name);
+        requestAndSaveData(name,true);
     }
 
     /**
@@ -80,39 +97,52 @@ public class PokemonBoundaryCallback extends PagedList.BoundaryCallback<RetroPok
     public void onItemAtEndLoaded(@NonNull RetroPokemon itemAtEnd) {
         Log.d(LOG_TAG, "onItemAtEndLoaded: Started");
         //lastOffset += NETWORK_PAGE_SIZE;
-        requestAndSaveData(name);
+        requestAndSaveData(name,false);
+        // TODO THIS COULD NEED TO BE TRUE INSTEAD...
+        // TODO CHECK THAT THE ERROR VALUES ARE UPDATING PROPERLY...
     }
 
-    /**
-     * Callback invoked when the Search Repo API Call
-     * completed successfully
-     *
-     * @param pokemons The List of Repos retrieved for the Search done
-     */
-    @Override
-    public void onSuccess(List<RetroPokemon> pokemons) {
-        //Inserting records in the database thread
 
-        repository.insertVarious(pokemons, () -> {
-            //Updating the last requested page number when the request was successful
-            //and the results were inserted successfully
-            lastOffset += NETWORK_PAGE_SIZE;
-            Log.d(LOG_TAG,"last Offset: " + lastOffset + "; page size: " + NETWORK_PAGE_SIZE);
-            //Marking the request progress as completed
-            isRequestInProgress = false;
-        });
-    }
-
-    /**
-     * Callback invoked when the Search Repo API Call failed
-     *
-     * @param errorMessage The Error message captured for the API Call failed
-     */
     @Override
-    public void onError(String errorMessage) {
+    public void onApiResult(List<RetroPokemon> pokemons, ResponseState responseState) {
+        if(pokemons!= null && !pokemons.isEmpty()) {
+            repository.insertVarious(pokemons, () -> {
+                //Updating the last requested page number when the request was successful
+                //and the results were inserted successfully
+                lastOffset += NETWORK_PAGE_SIZE;
+                Log.d(LOG_TAG, "last Offset: " + lastOffset + "; page size: " + NETWORK_PAGE_SIZE);
+                // update last refresh date
+                updateLastRefresh();
+            });
+        }
+
+
         //Update the Network error to be shown
-        networkErrors.postValue(errorMessage);
+        networkErrors.postValue(responseState);
         //Mark the request progress as completed
         isRequestInProgress = false;
+    }
+
+    private int isdbUpToDate() {
+        SharedPreferences sharedPreferences = repository.getContext().getSharedPreferences(
+                Globals.PREFERENCE_FILE_NAME, Context.MODE_PRIVATE);
+        long lastSavedMinutes = sharedPreferences.getLong("lastRefresh",0);
+        if(lastSavedMinutes == 0) {
+            return DB_EMPTY;
+        }
+        Calendar calendar = Calendar.getInstance();
+        long nowMinutes = calendar.getTimeInMillis()/60000;
+        Log.d(LOG_TAG,"time difference: " + (nowMinutes - lastSavedMinutes));
+        if(nowMinutes-lastSavedMinutes > FRESH_TIMEOUT_IN_MINUTES) {
+            return OUTDATED;
+        }
+        else return UP_TO_DATE;
+    }
+
+    private void updateLastRefresh() {
+        SharedPreferences.Editor editor = repository.getContext().getSharedPreferences(
+                Globals.PREFERENCE_FILE_NAME, Context.MODE_PRIVATE).edit();
+        editor.putLong("lastRefresh",Calendar.getInstance().getTimeInMillis()/60000);
+        editor.apply();
     }
 }

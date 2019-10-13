@@ -2,6 +2,14 @@
     <string name="app_name">Pokemon Paging Config</string>
     <string name="type_pokemon_name_hint">Type pokemon name</string>
     <string name="in_album_textview">In album:</string>
-    <string name="item_image_content_desc">Preview of the photo</string>
+    <string name="item_image_content_desc">Image of this pokemon</string>
     <string name="not_data_yet">Not data yet</string>
+    <string name="download_failed">Could not download data from network.</string>
+
+    <string name="no_internet_notice">No internet connection, please try later.</string>
+    <string name="donwload_unsuccessful_notice">Dowload failed, please try later.</string>
+    <string name="empty_download_notice">Refreshed data was empty, please try later.</string>
+    <string name="no_data_from_network_nonfatal">Could not refresh data from network, will try later.</string>
+    <string name="download_error_content_desc">Data refresh failed</string>
+    <string name="could_not_load_some_pokemon_bad_internet">Could not load some pokemon due to a bad internet connection, try again later&#8230;</string>
 </resources>
