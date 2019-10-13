@@ -107,6 +107,7 @@ public class PokemonBoundaryCallback extends PagedList.BoundaryCallback<RetroPok
     public void onApiResult(List<RetroPokemon> pokemons, ResponseState responseState) {
         if(pokemons!= null && !pokemons.isEmpty()) {
             repository.insertVarious(pokemons, () -> {
+                Log.d(LOG_TAG, "Response is good ");
                 //Updating the last requested page number when the request was successful
                 //and the results were inserted successfully
                 lastOffset += NETWORK_PAGE_SIZE;
@@ -115,7 +116,9 @@ public class PokemonBoundaryCallback extends PagedList.BoundaryCallback<RetroPok
                 updateLastRefresh();
             });
         }
-
+        else {
+            Log.d(LOG_TAG, "Response is empty ");
+        }
 
         //Update the Network error to be shown
         networkErrors.postValue(responseState);

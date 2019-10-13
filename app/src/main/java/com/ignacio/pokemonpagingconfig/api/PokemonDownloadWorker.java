@@ -43,10 +43,8 @@ public class PokemonDownloadWorker extends Worker {
     @NonNull
     @Override
     public ListenableWorker.Result doWork() {
-        int offset = getInputData().getInt("offset",0);
-        int itemsPerPage = getInputData().getInt("itemsPerPage", RetroPokemonRepository.DATABASE_PAGE_SIZE);
-
-
+        String name = getInputData().getString("name");
+        RetroPokemonRepository.getInstance(getApplicationContext()).searchPokemons(name);
         //Data taskData = getInputData();
         //String taskDataString = taskData.getString(MainActivity.MESSAGE_STATUS);
         //runTheJob();
