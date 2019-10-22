@@ -55,4 +55,7 @@ dependencies {
     // Paging Library
     implementation 'androidx.paging:paging-runtime:2.1.0'
     implementation 'androidx.work:work-runtime:2.2.0'
+
+    // eventbus
+    implementation 'org.greenrobot:eventbus:3.1.1'
 }
